@@ -1,0 +1,37 @@
+[
+  {
+    "type": "motion",
+    "linear_x": 0.35,
+    "linear_y": 0.0,
+    "angular_z": 0.0,
+    "duration": 2.0
+  },
+  {
+    "type": "speech",
+    "text": "Reached checkpoint one.",
+    "pause_after_sec": 1.0
+  },
+  {
+    "type": "motion",
+    "linear_x": 0.0,
+    "linear_y": 0.0,
+    "angular_z": -0.45,
+    "duration": 1.8
+  },
+  {
+    "type": "motion",
+    "linear_x": 0.35,
+    "linear_y": 0.0,
+    "angular_z": 0.0,
+    "duration": 2.0
+  },
+  {
+    "type": "speech",
+    "text": "Reached checkpoint two.",
+    "pause_after_sec": 1.0
+  },
+  {
+    "type": "pause",
+    "duration": 0.5
+  }
+]

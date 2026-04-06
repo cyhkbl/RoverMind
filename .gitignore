@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# ROS 2 / colcon
+build/
+install/
+log/
+.colcon/
+
+# Packaging
+dist/
+*.egg-info/
+
+# Runtime and local artifacts
+*.log
+*.tmp
+*.swp
