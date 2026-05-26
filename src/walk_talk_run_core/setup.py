@@ -16,7 +16,7 @@ setup(
     zip_safe=True,
     maintainer="cyhkbl",
     maintainer_email="cyhkbl@users.noreply.github.com",
-    description="ROS 2 motion/speech sequence runner with closed-loop control.",
+    description="RoverMind — ROS 2 motion/speech sequence runner with closed-loop control.",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [

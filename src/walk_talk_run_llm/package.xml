@@ -3,7 +3,7 @@
 <package format="3">
   <name>walk_talk_run_llm</name>
   <version>0.2.0</version>
-  <description>LLM-based natural language to motion sequence parser for walk_talk_run.</description>
+  <description>RoverMind — LLM-based natural language to motion sequence parser.</description>
   <maintainer email="cyhkbl@users.noreply.github.com">cyhkbl</maintainer>
   <license>Apache-2.0</license>
 

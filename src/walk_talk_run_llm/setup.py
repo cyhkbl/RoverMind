@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer="cyhkbl",
     maintainer_email="cyhkbl@users.noreply.github.com",
-    description="LLM-based natural language to motion sequence parser.",
+    description="RoverMind — LLM-based natural language to motion sequence parser.",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [

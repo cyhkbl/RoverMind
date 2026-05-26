@@ -3,7 +3,7 @@
 <package format="3">
   <name>walk_talk_run_sim</name>
   <version>0.2.0</version>
-  <description>Gazebo simulation for walk_talk_run robot.</description>
+  <description>RoverMind — Gazebo simulation for differential-drive robot.</description>
   <maintainer email="cyhkbl@users.noreply.github.com">cyhkbl</maintainer>
   <license>Apache-2.0</license>
 

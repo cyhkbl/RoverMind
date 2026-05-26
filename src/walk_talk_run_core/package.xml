@@ -3,7 +3,7 @@
 <package format="3">
   <name>walk_talk_run_core</name>
   <version>0.2.0</version>
-  <description>ROS 2 motion/speech sequence runner with closed-loop control and obstacle avoidance.</description>
+  <description>RoverMind — ROS 2 motion/speech sequence runner with closed-loop control and obstacle avoidance.</description>
   <maintainer email="cyhkbl@users.noreply.github.com">cyhkbl</maintainer>
   <license>Apache-2.0</license>
 

@@ -1,4 +1,4 @@
-# ROS 2 机器人具身智能演示
+# RoverMind — ROS 2 具身智能机器人演示
 
 > 基于 ROS 2 Humble + Gazebo Ignition，通过 JSON 动作序列 / 自然语言指令驱动机器人运动控制与语音播报，支持闭环导航与障碍物规避。
 
@@ -106,7 +106,7 @@ ros2 launch walk_talk_run_core sequence_runner.launch.py
 ## 仓库结构
 
 ```
-ROS_WALK_TALK_RUN/
+RoverMind/
 ├── docker/
 │   ├── Dockerfile                    # ROS 2 Humble + Gazebo 环境
 │   └── entrypoint.sh
