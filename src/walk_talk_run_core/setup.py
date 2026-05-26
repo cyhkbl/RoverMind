@@ -1,12 +1,10 @@
 from setuptools import find_packages, setup
 
-
-package_name = "walk_talk_run_demo"
-
+package_name = "walk_talk_run_core"
 
 setup(
     name=package_name,
-    version="0.1.0",
+    version="0.2.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
@@ -18,11 +16,12 @@ setup(
     zip_safe=True,
     maintainer="cyhkbl",
     maintainer_email="cyhkbl@users.noreply.github.com",
-    description="Generic ROS 2 motion-and-speech sequence demo package.",
+    description="ROS 2 motion/speech sequence runner with closed-loop control.",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
-            "sequence_runner = walk_talk_run_demo.sequence_runner:main",
+            "sequence_runner = walk_talk_run_core.sequence_runner:main",
+            "obstacle_avoider = walk_talk_run_core.obstacle_avoider:main",
         ],
     },
 )

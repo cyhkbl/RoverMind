@@ -1,0 +1,9 @@
+[
+  {"type": "motion_distance", "distance": 1.5, "speed": 0.3},
+  {"type": "speech", "text": "到达第一个检查点", "pause_after_sec": 1.0},
+  {"type": "motion_angle", "angle": -1.57, "speed": 0.5},
+  {"type": "motion_distance", "distance": 1.5, "speed": 0.3},
+  {"type": "speech", "text": "到达第二个检查点", "pause_after_sec": 1.0},
+  {"type": "motion_angle", "angle": 3.14, "speed": 0.5},
+  {"type": "pause", "duration": 0.5}
+]

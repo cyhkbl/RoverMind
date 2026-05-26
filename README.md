@@ -1,112 +1,199 @@
-# ROS2 机器人电控语音操作
+# ROS 2 机器人具身智能演示
 
-> 基于 ROS 2 Humble + 智源灵犀X2 人型机器人，通过 JSON 动作序列驱动机器人运动控制与语音播报。
+> 基于 ROS 2 Humble + Gazebo Ignition，通过 JSON 动作序列 / 自然语言指令驱动机器人运动控制与语音播报，支持闭环导航与障碍物规避。
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  config/default_sequence.json                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │  motion   │→│  speech   │→│  motion   │→ ...        │
-│  │  前进2s   │  │ "到达1"  │  │  右转1.8s │             │
-│  └──────────┘  └──────────┘  └──────────┘              │
-└────────────────────────┬────────────────────────────────┘
+                         ┌──────────────────────┐
+                         │   自然语言指令         │
+                         │  "前进2米然后左转"     │
+                         └──────────┬───────────┘
+                                    ▼
+                         ┌──────────────────────┐
+                         │  IntentParserNode     │  walk_talk_run_llm
+                         │  Claude API → JSON    │
+                         └──────────┬───────────┘
+                                    ▼
+┌───────────────────────────────────────────────────────────────┐
+│  config/sequence.json                                         │
+│  ┌──────────────────┐  ┌──────────┐  ┌──────────────────┐    │
+│  │  motion_distance  │→│  speech   │→│  motion_angle     │→… │
+│  │  前进2m @0.3m/s   │  │ "到达1"  │  │  左转90° @0.5°/s │    │
+│  └──────────────────┘  └──────────┘  └──────────────────┘    │
+└────────────────────────┬──────────────────────────────────────┘
                          ▼
               ┌─────────────────────┐
-              │  SequenceRunnerNode │  (ROS 2 Node)
+              │  SequenceRunnerNode │  walk_talk_run_core
               │  ─────────────────  │
-              │  · 解析动作序列     │
-              │  · 速度安全校验     │
-              │  · 20Hz 持续发布    │
-              │  · 中断停止保护     │
+              │  · 闭环里程计控制    │  ← /odom feedback
+              │  · 障碍物规避暂停    │  ← /scan → ObstacleAvoider
+              │  · 速度安全校验      │
+              │  · 优雅中断停止      │
               └──────┬──────┬──────┘
                      │      │
             cmd_vel  │      │ speech_cue
           (Twist)    │      │ (String)
                      ▼      ▼
-              ┌────────┐  ┌────────┐
-              │ 舵机   │  │ TTS    │
-              │ 运动控制│  │ 语音播报│
-              └────────┘  └────────┘
+              ┌───────────────────┐
+              │  Gazebo 仿真      │  walk_talk_run_sim
+              │  /odom + /scan    │
+              │  差速底盘 + LiDAR  │
+              └───────────────────┘
 ```
 
-## 三种动作类型
+## 五种动作类型
 
-| 类型 | 作用 | 关键参数 |
-|------|------|----------|
-| `motion` | 发布速度指令 | `linear_x/y`, `angular_z`, `duration` |
-| `speech` | 输出语音/日志 | `text`, `pause_after_sec` |
-| `pause` | 静默等待 | `duration` |
+| 类型 | 控制方式 | 关键参数 | 说明 |
+|------|----------|----------|------|
+| `motion_distance` | **闭环** (odom) | `distance`, `speed` | 基于里程计反馈移动指定距离 (米) |
+| `motion_angle` | **闭环** (odom) | `angle`, `speed` | 基于里程计反馈旋转指定角度 (弧度) |
+| `motion` | 开环 (时间) | `linear_x/y`, `angular_z`, `duration` | 按固定速度运行指定时长 (兼容旧版) |
+| `speech` | — | `text`, `pause_after_sec` | 语音/日志播报 |
+| `pause` | — | `duration` | 静默等待 |
 
-速度指令经 `max_linear_speed` / `max_angular_speed` 硬限幅，超出范围直接报错拒绝执行。
+闭环控制使用 P 控制器 (Proportional)，通过 `/odom` 话题实时反馈机器人位置与航向。速度指令经 `max_linear_speed` / `max_angular_speed` 硬限幅。
 
 ## 快速开始
 
+### Docker（推荐）
+
 ```bash
-source /opt/ros/humble/setup.bash
-colcon build --packages-select walk_talk_run_demo
-source install/setup.bash
-ros2 run walk_talk_run_demo sequence_runner
+# 构建
+docker compose build
+
+# 运行 Gazebo 仿真 + 闭环序列
+docker compose run --rm sim
+
+# 运行 LLM 自然语言控制（需设置 API Key）
+export ANTHROPIC_API_KEY=sk-ant-...
+docker compose up llm
+# 另一终端发送指令
+docker compose run --rm test-command
 ```
 
-自定义动作序列：
+### 本地安装
 
 ```bash
-ros2 run walk_talk_run_demo sequence_runner --ros-args \
-  -p sequence_file:=/path/to/your_sequence.json
+# 依赖
+sudo apt install ros-humble-ros-gz-sim ros-humble-ros-gz-bridge \
+  ros-humble-robot-state-publisher ros-humble-xacro
+pip install anthropic
+
+# 构建
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+
+# 仿真模式
+ros2 launch walk_talk_run_sim sim.launch.py
+
+# 纯序列运行（无 Gazebo）
+ros2 launch walk_talk_run_core sequence_runner.launch.py
 ```
 
 ## 自定义动作序列
 
-编辑 JSON 文件即可，支持三种步骤混合编排：
-
 ```json
 [
-  {"type": "motion", "linear_x": 0.3, "linear_y": 0.0, "angular_z": 0.0, "duration": 2.0},
-  {"type": "speech", "text": "到达检查点", "pause_after_sec": 1.5},
+  {"type": "motion_distance", "distance": 2.0, "speed": 0.3},
+  {"type": "speech", "text": "到达检查点一", "pause_after_sec": 1.0},
+  {"type": "motion_angle", "angle": -1.57, "speed": 0.5},
+  {"type": "motion_distance", "distance": 1.5, "speed": 0.3},
+  {"type": "speech", "text": "到达检查点二", "pause_after_sec": 1.0},
   {"type": "pause", "duration": 0.5}
 ]
 ```
 
-所有动作在加载时经过 `validate_sequence()` 校验：类型合法性、速度上限、duration 正数检查。
+## 仓库结构
+
+```
+ROS_WALK_TALK_RUN/
+├── docker/
+│   ├── Dockerfile                    # ROS 2 Humble + Gazebo 环境
+│   └── entrypoint.sh
+├── docker-compose.yml                # 一键启动
+├── pyproject.toml                    # ruff + mypy 配置
+├── .pre-commit-config.yaml
+└── src/
+    ├── walk_talk_run_core/           # 核心包：序列控制 + 闭环 + 避障
+    │   ├── walk_talk_run_core/
+    │   │   ├── sequence_model.py     # 序列解析 + 校验 (5种类型)
+    │   │   ├── sequence_runner.py    # ROS 2 节点：执行序列
+    │   │   ├── closed_loop.py        # 闭环控制器 (P控制)
+    │   │   └── obstacle_avoider.py   # 障碍物检测节点
+    │   ├── config/default_sequence.json
+    │   ├── launch/
+    │   └── test/
+    │
+    ├── walk_talk_run_sim/            # 仿真包：Gazebo + URDF
+    │   ├── urdf/diff_drive.urdf.xacro  # 差速底盘 URDF
+    │   ├── world/indoor.sdf            # 室内仿真世界
+    │   ├── config/default_sequence_sim.json
+    │   └── launch/sim.launch.py        # 一键启动仿真
+    │
+    └── walk_talk_run_llm/            # LLM 包：自然语言 → 动作序列
+        ├── walk_talk_run_llm/
+        │   └── intent_parser.py      # Claude API 意图解析
+        ├── launch/intent_parser.launch.py
+        └── test/
+```
 
 ## 可配置参数
+
+### SequenceRunnerNode
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `cmd_vel_topic` | `/cmd_vel` | 速度指令 topic |
-| `speech_topic` | `""`（空=仅日志） | 语音 topic |
-| `publish_hz` | `20.0` | 发布频率 |
+| `speech_topic` | `""` | 语音 topic（空=仅日志） |
+| `sequence_file` | 包内默认 | JSON 序列文件路径 |
+| `publish_hz` | `20.0` | 速度发布频率 (Hz) |
 | `max_linear_speed` | `1.0` | 线速度上限 (m/s) |
 | `max_angular_speed` | `1.0` | 角速度上限 (rad/s) |
-| `stop_grace_period` | `0.5` | 中断后停止指令延迟 (s) |
+| `obstacle_topic` | `/obstacle_detected` | 障碍物状态 topic |
 
-## 设计决策
+### ObstacleAvoiderNode
 
-- **JSON 驱动的动作序列**：将运动逻辑与代码解耦，无需重新编译即可调整机器人行为
-- **速度硬限幅**：在发布层强制校验，防止配置错误导致机器人失控
-- **优雅停止**：捕获 SIGINT/SIGTERM 后发送零速度指令，避免机器人在中断时持续运动
-- **rclpy 定时器**：以固定 20Hz 频率持续发布速度指令，确保运动平滑
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `scan_topic` | `/scan` | 激光雷达 topic |
+| `obstacle_distance` | `0.5` | 障碍物触发距离 (m) |
+
+### IntentParserNode
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `input_topic` | `/nl_command` | 自然语言输入 topic |
+| `output_topic` | `/parsed_sequence` | 解析结果输出 topic |
+| `model` | `claude-sonnet-4-20250514` | Claude 模型版本 |
 
 ## 测试
 
 ```bash
-colcon test --packages-select walk_talk_run_demo
+colcon test --packages-select walk_talk_run_core walk_talk_run_llm
 colcon test-result --verbose
 ```
 
-测试覆盖动作序列的加载与校验逻辑（`test_sequence_model.py`），不包含真机行为验证。
+## 设计决策
 
-## 仓库结构
+- **闭环 > 开环**：`motion_distance` / `motion_angle` 基于 `/odom` 反馈控制，比纯时间控制更精确、更安全
+- **JSON 驱动**：运动逻辑与代码解耦，无需重编译即可调整行为
+- **模块化多包**：core / sim / llm 解耦，可独立使用
+- **Docker 化**：一键复现，跨平台一致体验
+- **速度硬限幅 + 避障**：双重安全机制，防止配置错误或环境变化导致碰撞
+- **优雅停止**：SIGINT/SIGTERM 后立即零速停止
 
-```
-src/walk_talk_run_demo/
-├── config/default_sequence.json    # 默认动作序列
-├── launch/sequence_runner.launch.py # Launch 文件
-├── test/test_sequence_model.py     # 单元测试
-└── walk_talk_run_demo/
-    ├── sequence_model.py           # 序列解析 + 校验
-    └── sequence_runner.py          # ROS 2 节点主逻辑
-```
+## Roadmap
+
+- [x] 闭环里程计控制 (motion_distance / motion_angle)
+- [x] 障碍物规避 (LiDAR scan → 自动暂停)
+- [x] Gazebo Ignition 仿真 (差速底盘 + LiDAR)
+- [x] LLM 自然语言意图解析 (Claude API)
+- [x] Docker 容器化部署
+- [x] CI 测试流水线 (GitHub Actions)
+- [ ] Nav2 导航栈集成 (NavigateToPose Action)
+- [ ] 行为树重构 (py_trees_ros)
+- [ ] Lifecycle Node (工业级节点管理)
+- [ ] 真机适配 (智源灵犀X2)
 
 ## 安全提醒
 

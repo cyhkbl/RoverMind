@@ -13,8 +13,9 @@ def generate_launch_description():
             DeclareLaunchArgument("publish_hz", default_value="20.0"),
             DeclareLaunchArgument("max_linear_speed", default_value="1.0"),
             DeclareLaunchArgument("max_angular_speed", default_value="1.0"),
+            DeclareLaunchArgument("obstacle_distance", default_value="0.5"),
             Node(
-                package="walk_talk_run_demo",
+                package="walk_talk_run_core",
                 executable="sequence_runner",
                 name="sequence_runner",
                 output="screen",
@@ -26,6 +27,17 @@ def generate_launch_description():
                         "publish_hz": LaunchConfiguration("publish_hz"),
                         "max_linear_speed": LaunchConfiguration("max_linear_speed"),
                         "max_angular_speed": LaunchConfiguration("max_angular_speed"),
+                    }
+                ],
+            ),
+            Node(
+                package="walk_talk_run_core",
+                executable="obstacle_avoider",
+                name="obstacle_avoider",
+                output="screen",
+                parameters=[
+                    {
+                        "obstacle_distance": LaunchConfiguration("obstacle_distance"),
                     }
                 ],
             ),

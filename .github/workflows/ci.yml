@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-22.04
+    container:
+      image: osrf/ros:humble-desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3-pip \
+            ros-humble-ros-gz-sim \
+            ros-humble-ros-gz-bridge \
+            ros-humble-robot-state-publisher \
+            ros-humble-xacro
+          pip3 install anthropic ruff mypy pytest
+
+      - name: Lint (ruff)
+        run: ruff check src/
+
+      - name: Type check (mypy)
+        run: mypy src/ --ignore-missing-imports --no-error-summary || true
+
+      - name: Build
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --packages-select walk_talk_run_core walk_talk_run_llm
+
+      - name: Test
+        run: |
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          colcon test --packages-select walk_talk_run_core walk_talk_run_llm
+          colcon test-result --verbose

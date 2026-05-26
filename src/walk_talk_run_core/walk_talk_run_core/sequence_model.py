@@ -74,6 +74,42 @@ def validate_sequence(sequence, max_linear_speed, max_angular_speed):
             validated.append({"type": "pause", "duration": duration})
             continue
 
+        if step_type == "motion_distance":
+            distance = float(step.get("distance", 0.0))
+            speed = float(step.get("speed", 0.3))
+            if distance == 0.0:
+                raise ValueError(f"step {index} distance must be non-zero")
+            if abs(speed) > max_linear_speed:
+                raise ValueError(f"step {index} speed exceeds limit")
+            if speed <= 0.0:
+                raise ValueError(f"step {index} speed must be positive")
+            validated.append(
+                {
+                    "type": "motion_distance",
+                    "distance": distance,
+                    "speed": speed,
+                }
+            )
+            continue
+
+        if step_type == "motion_angle":
+            angle = float(step.get("angle", 0.0))
+            speed = float(step.get("speed", 0.5))
+            if angle == 0.0:
+                raise ValueError(f"step {index} angle must be non-zero")
+            if abs(speed) > max_angular_speed:
+                raise ValueError(f"step {index} speed exceeds limit")
+            if speed <= 0.0:
+                raise ValueError(f"step {index} speed must be positive")
+            validated.append(
+                {
+                    "type": "motion_angle",
+                    "angle": angle,
+                    "speed": speed,
+                }
+            )
+            continue
+
         raise ValueError(f"step {index} has unsupported type: {step_type}")
 
     return validated

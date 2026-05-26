@@ -1,0 +1,64 @@
+services:
+  # Core: sequence runner + obstacle avoider (headless, no Gazebo)
+  core:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: >
+      ros2 launch walk_talk_run_core sequence_runner.launch.py
+    volumes:
+      - ./src/walk_talk_run_core/config:/workspace/src/walk_talk_run_core/config:ro
+    network_mode: host
+    ipc: host
+    pid: host
+
+  # Simulation: Gazebo + robot + sequence runner
+  sim:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: >
+      ros2 launch walk_talk_run_sim sim.launch.py
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp/xdg}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./src/walk_talk_run_sim/config:/workspace/src/walk_talk_run_sim/config:ro
+    network_mode: host
+    ipc: host
+    pid: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # LLM intent parser (standalone)
+  llm:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: >
+      ros2 launch walk_talk_run_llm intent_parser.launch.py
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    network_mode: host
+    ipc: host
+    pid: host
+
+  # Publish a test NL command
+  test-command:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: >
+      ros2 topic pub --once /nl_command std_msgs/msg/String
+      "{data: '前进2米然后左转90度，到达后说到了'}"
+    network_mode: host
+    ipc: host
+    pid: host
